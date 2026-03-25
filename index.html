@@ -1,55 +1,197 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="ko">
 <head>
-  <title>WEBP - Welcome!</title>
-  <meta charset="utf-8">
-  <!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-KCQL14GRFY"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-KCQL14GRFY');
-</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Smart Voca Player</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; max-width: 500px; margin: 0 auto; background: #f0f2f5; padding: 15px; }
+        .container { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: #e4e6eb; border-radius: 10px; font-weight: bold; }
+        .tab-btn.active { background: #007bff; color: white; }
+        .settings { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .setting-item { display: flex; justify-content: space-between; align-items: center; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+        button { padding: 12px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; }
+        .primary { background: #28a745; color: white; }
+        .danger { background: #dc3545; color: white; }
+        .warning { background: #ffc107; color: black; }
+        .secondary { background: #6c757d; color: white; }
+        textarea { width: 100%; height: 80px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #ddd; padding: 10px; box-sizing: border-box; }
+        .word-item { display: flex; align-items: center; background: #fff; padding: 12px; border-bottom: 1px solid #eee; }
+        .word-text { flex: 1; margin: 0 10px; font-size: 15px; }
+        .star { font-size: 22px; color: #ccc; cursor: pointer; }
+        .star.selected { color: #ffc107; }
+        .status { text-align: center; font-weight: bold; color: #007bff; margin: 10px 0; min-height: 1.2em; font-size: 1.1em; }
+        .admin-controls { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 20px; }
+    </style>
 </head>
-
 <body>
-  <h1><a href="index.html">WEB</a></h1>
-  <ol>
-    <li><a href="1.html">HTML</a></li>
-    <li><a href="2.html">CSS</a></li>
-    <li><a href="3.html">JavaScript</a></li>
-  </ol>
-  <h2>WEB</h2>
-  <p>PThe World Wide Web (WWW), commonly known as the Web, is an information system where documents and other web resources are identified by Uniform Resource Locators (URLs, such as https://example.com/), which may be interlinked by hyperlinks, and are accessible over the Internet.[1][2] The resources of the Web are transferred via the Hypertext Transfer Protocol (HTTP), may be accessed by users by a software application called a web browser, and are published by a software application called a web server. The World Wide Web is built on top of the Internet, which pre-dated the Web by over two decades.
 
-English scientist Tim Berners-Lee co-invented the World Wide Web in 1989 along with Robert Cailliau. He wrote the first web browser in 1990 while employed at CERN near Geneva, Switzerland.[3][4] The browser was released outside CERN to other research institutions starting in January 1991, and then to the general public in August 1991. The Web began to enter everyday use in 1993–1994, when websites for general use started to become available.[5] The World Wide Web has been central to the development of the Information Age and is the primary tool billions of people use to interact on the Internet.[6][7][8][9][10]
+<div class="container">
+    <div class="tabs">
+        <button class="tab-btn active" id="btnAll" onclick="switchTab('all')">전체</button>
+        <button class="tab-btn" id="btnSelected" onclick="switchTab('selected')">선별(★)</button>
+    </div>
 
-Web resources may be any type of downloaded media, but web pages are hypertext documents formatted in Hypertext Markup Language (HTML).[11] Special HTML syntax displays embedded hyperlinks with URLs, which permits users to navigate to other web resources. In addition to text, web pages may contain references to images, video, audio, and software components, which are either displayed or internally executed in the user's web browser to render pages or streams of multimedia content.
+    <div class="settings">
+        <div class="setting-item">
+            <span>반복 횟수</span>
+            <select id="repeatCount">
+                <option value="1">1회씩 읽기</option>
+                <option value="2">2회씩 반복</option>
+                <option value="3">3회씩 반복</option>
+            </select>
+        </div>
+        <div class="setting-item">
+            <span>속도 (<span id="speedVal">1.0</span>x)</span>
+            <input type="range" id="readSpeed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('speedVal').innerText=this.value">
+        </div>
+    </div>
 
-Multiple web resources with a common theme and usually a common domain name make up a website. Websites are stored in computers that are running a web server, which is a program that responds to requests made over the Internet from web browsers running on a user's computer. Website content can be provided by a publisher or interactively from user-generated content. Websites are provided for a myriad of informative, entertainment, commercial, and governmental reasons.</p>
-<p>
-  <div id="disqus_thread"></div>
+    <div id="statusLabel" class="status"></div>
+
+    <div class="controls">
+        <button class="primary" onclick="startReading()">시작</button>
+        <button class="warning" onclick="pauseReading()">일시정지</button>
+        <button class="danger" onclick="stopReading()">종료</button>
+    </div>
+
+    <textarea id="bulkInput" placeholder="단어 뜻 (한 줄에 하나씩 붙여넣기)"></textarea>
+    
+    <div class="admin-controls">
+        <button class="secondary" onclick="addBulkWords()">대량 등록</button>
+        <button class="danger" onclick="clearAllWords()">전체 삭제</button>
+    </div>
+
+    <div id="wordListDisplay"></div>
+</div>
+
 <script>
-  /**
-  *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
-  *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
-  /*
-  var disqus_config = function () {
-  this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
-  this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
-  };
-  */
-  (function() { // DON'T EDIT BELOW THIS LINE
-  var d = document, s = d.createElement('script');
-  s.src = 'https://webp-5.disqus.com/embed.js';
-  s.setAttribute('data-timestamp', +new Date());
-  (d.head || d.body).appendChild(s);
-  })();
+    let words = JSON.parse(localStorage.getItem('myWords')) || [];
+    let currentTab = 'all';
+    let isReading = false;
+    let synth = window.speechSynthesis;
+    let currentWordIndex = 0;
+    let currentRepeat = 0;
+
+    function save() {
+        localStorage.setItem('myWords', JSON.stringify(words));
+        render();
+    }
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.getElementById('btnAll').classList.toggle('active', tab === 'all');
+        document.getElementById('btnSelected').classList.toggle('active', tab === 'selected');
+        stopReading(); 
+        render();
+    }
+
+    function addBulkWords() {
+        const input = document.getElementById('bulkInput').value;
+        if(!input.trim()) return;
+        const newWords = input.split('\n').filter(line => line.trim() !== "");
+        newWords.forEach(line => {
+            words.push({ text: line.trim(), selected: false });
+        });
+        document.getElementById('bulkInput').value = '';
+        save();
+        alert(newWords.length + "개의 단어가 추가되었습니다.");
+    }
+
+    // [추가 기능] 전체 삭제 함수
+    function clearAllWords() {
+        if(confirm("정말로 모든 단어를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+            stopReading();
+            words = [];
+            save();
+            alert("모든 단어가 삭제되었습니다.");
+        }
+    }
+
+    function render() {
+        const listDiv = document.getElementById('wordListDisplay');
+        listDiv.innerHTML = '';
+        words.forEach((word, index) => {
+            if (currentTab === 'selected' && !word.selected) return;
+            const item = document.createElement('div');
+            item.className = 'word-item';
+            item.innerHTML = `<span class="star ${word.selected ? 'selected' : ''}" onclick="toggleSelect(${index})">★</span>
+                <span class="word-text">${word.text}</span>
+                <button class="danger" style="padding:5px 10px; font-size:12px; font-weight:normal;" onclick="deleteWord(${index})">삭제</button>`;
+            listDiv.appendChild(item);
+        });
+    }
+
+    function toggleSelect(index) { words[index].selected = !words[index].selected; save(); }
+    function deleteWord(index) { if(confirm('이 단어를 삭제할까요?')) { words.splice(index, 1); save(); } }
+
+    function startReading() {
+        if (isReading) return;
+        synth.cancel();
+        
+        const targetList = currentTab === 'all' ? words : words.filter(w => w.selected);
+        if (targetList.length === 0) return alert('읽을 단어가 없습니다.');
+        
+        isReading = true;
+        if (currentWordIndex >= targetList.length) currentWordIndex = 0;
+        
+        readLoop(targetList);
+    }
+
+    function readLoop(list) {
+        if (!isReading || currentWordIndex >= list.length) {
+            if (currentWordIndex >= list.length) stopReading();
+            return;
+        }
+
+        const maxRepeat = parseInt(document.getElementById('repeatCount').value);
+        const speed = parseFloat(document.getElementById('readSpeed').value);
+        const fullText = list[currentWordIndex].text;
+
+        document.getElementById('statusLabel').innerText = `[${currentWordIndex + 1}/${list.length}] ${currentRepeat + 1}회 읽는 중`;
+
+        const utterance = new SpeechSynthesisUtterance(fullText);
+        utterance.rate = speed;
+        
+        // 영어 포함 여부에 따른 발음 엔진 설정
+        if (/[a-zA-Z]/.test(fullText)) {
+            utterance.lang = 'en-US'; 
+        } else {
+            utterance.lang = 'ko-KR';
+        }
+
+        utterance.onend = () => {
+            currentRepeat++;
+            if (currentRepeat < maxRepeat) {
+                setTimeout(() => readLoop(list), 400);
+            } else {
+                currentRepeat = 0;
+                currentWordIndex++;
+                setTimeout(() => readLoop(list), 800);
+            }
+        };
+
+        synth.speak(utterance);
+    }
+
+    function pauseReading() {
+        isReading = false;
+        synth.cancel();
+        document.getElementById('statusLabel').innerText = '일시 정지됨';
+    }
+
+    function stopReading() {
+        isReading = false;
+        currentWordIndex = 0;
+        currentRepeat = 0;
+        synth.cancel();
+        document.getElementById('statusLabel').innerText = '';
+    }
+
+    render();
 </script>
-<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-</p>
 </body>
 </html>
-
