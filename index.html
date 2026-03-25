@@ -129,17 +129,29 @@
     function deleteWord(index) { if(confirm('이 단어를 삭제할까요?')) { words.splice(index, 1); save(); } }
 
     function startReading() {
-        if (isReading) return;
+    // [강화] 네이버 앱 등 웹뷰 브라우저를 위한 강제 활성화 로직
+    if (synth.speaking) {
         synth.cancel();
-        
-        const targetList = currentTab === 'all' ? words : words.filter(w => w.selected);
-        if (targetList.length === 0) return alert('읽을 단어가 없습니다.');
-        
-        isReading = true;
-        if (currentWordIndex >= targetList.length) currentWordIndex = 0;
-        
-        readLoop(targetList);
     }
+
+    // 빈 음성을 짧게 여러 번 던져서 엔진의 잠금을 해제합니다.
+    const forceWake = new SpeechSynthesisUtterance(" ");
+    forceWake.volume = 0; // 소리 없이 실행
+    synth.speak(forceWake);
+
+    const targetList = currentTab === 'all' ? words : words.filter(w => w.selected);
+    if (targetList.length === 0) return alert('읽을 단어가 없습니다.');
+
+    isReading = true;
+    
+    // 일시정지 후 다시 시작하는 경우를 고려해 인덱스 유지
+    if (currentWordIndex >= targetList.length) currentWordIndex = 0;
+
+    // 네이버 앱은 엔진 로딩이 느릴 수 있으므로 지연 시간을 조금 더 늘립니다 (500ms)
+    setTimeout(() => {
+        if (isReading) readLoop(targetList);
+    }, 500);
+}
 
     function readLoop(list) {
         if (!isReading || currentWordIndex >= list.length) {
